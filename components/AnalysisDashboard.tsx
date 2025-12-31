@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AIAdvice, FinancialData, HealthStatus, formatCurrency } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface AnalysisDashboardProps {
   advice: AIAdvice;
@@ -39,7 +39,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 150);
+    // Small delay ensures the parent container has settled in the DOM before Recharts measures it
+    const timer = setTimeout(() => setIsMounted(true), 200);
     return () => clearTimeout(timer);
   }, []);
 
@@ -54,7 +55,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
   ];
 
   const totalSavings = Object.values(data.savings).reduce((a, b) => a + b, 0);
-  const surplus = Math.max(0, data.monthlyIncome - (data.monthlyExpenses + data.monthlyEMI + totalSavings));
+  const totalOutflow = data.monthlyExpenses + data.monthlyEMI + totalSavings;
+  const surplus = Math.max(0, data.monthlyIncome - totalOutflow);
   
   const budgetChartData = [
     { name: 'Expenses', value: data.monthlyExpenses, color: '#0ea5e9' },
@@ -63,7 +65,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
     { name: 'Surplus', value: surplus, color: '#94a3b8' }
   ].filter(item => item.value > 0);
 
-  if (!isMounted) return <div className="min-h-[500px]" />;
+  if (!isMounted) return <div className="min-h-[600px] flex items-center justify-center text-slate-400 font-medium">Preparing Dashboard...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -94,17 +96,29 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
           </div>
         </div>
 
-        <div className="lg:col-span-5 bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col items-center justify-center">
+        <div className="lg:col-span-5 bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col items-center justify-center min-h-[300px]">
            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Budget Split</h3>
-           <div className="w-full h-48 relative overflow-hidden">
-              <ResponsiveContainer width="100%" height="100%">
+           {/* Parent div with explicit dimensions for ResponsiveContainer */}
+           <div className="w-full h-48 min-h-[192px] relative overflow-hidden flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={budgetChartData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value">
                     {budgetChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />)}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value, data.currency)} contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px', fontWeight: 'bold' }} />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value, data.currency)} 
+                    contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
+                  />
                 </PieChart>
               </ResponsiveContainer>
+           </div>
+           <div className="mt-4 flex flex-wrap justify-center gap-3">
+             {budgetChartData.map((item, i) => (
+               <div key={i} className="flex items-center gap-1.5">
+                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{item.name}</span>
+               </div>
+             ))}
            </div>
         </div>
       </div>
