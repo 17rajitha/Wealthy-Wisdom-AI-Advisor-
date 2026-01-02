@@ -39,8 +39,9 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Small delay ensures the parent container has settled in the DOM before Recharts measures it
-    const timer = setTimeout(() => setIsMounted(true), 200);
+    // Ensuring the layout is stable before mounting the chart components.
+    // 300ms is usually enough for most CSS transitions/animations to settle.
+    const timer = setTimeout(() => setIsMounted(true), 300);
     return () => clearTimeout(timer);
   }, []);
 
@@ -54,7 +55,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
     '#f1f5f9'
   ];
 
-  const totalSavings = Object.values(data.savings).reduce((a, b) => a + b, 0);
+  // Fix: Explicitly cast Object.values to number[] to avoid "unknown" type error in reduce
+  const totalSavings = (Object.values(data.savings) as number[]).reduce((a, b) => a + b, 0);
   const totalOutflow = data.monthlyExpenses + data.monthlyEMI + totalSavings;
   const surplus = Math.max(0, data.monthlyIncome - totalOutflow);
   
@@ -98,8 +100,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
 
         <div className="lg:col-span-5 bg-white p-8 rounded-3xl shadow-sm border border-slate-200 flex flex-col items-center justify-center min-h-[300px]">
            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Budget Split</h3>
-           {/* Parent div with explicit dimensions for ResponsiveContainer */}
-           <div className="w-full h-48 min-h-[192px] relative overflow-hidden flex items-center justify-center">
+           {/* Parent div with explicit dimensions and display:block for ResponsiveContainer */}
+           <div className="w-full h-48 min-h-[192px] relative flex items-center justify-center overflow-visible">
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={budgetChartData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value">
@@ -123,7 +125,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ advice, data }) =
         </div>
       </div>
 
-      {/* New Goal Analysis Section */}
+      {/* Goal Analysis Section */}
       {advice.goalFeasibility && advice.goalFeasibility.length > 0 && (
         <div className="bg-blue-50 p-8 rounded-3xl border border-blue-100 shadow-sm">
           <h3 className="text-lg font-bold text-blue-900 mb-6 flex items-center">

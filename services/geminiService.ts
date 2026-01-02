@@ -20,7 +20,8 @@ IMPORTANT: You must include this exact text at the end of every response:
 
 export const analyzeFinance = async (data: FinancialData): Promise<AIAdvice> => {
   const formattedIncome = formatCurrency(data.monthlyIncome, data.currency);
-  const totalMonthlySavings = Object.values(data.savings).reduce((a, b) => a + b, 0);
+  // Fix: Explicitly cast Object.values to number[] to avoid "unknown" type error in reduce
+  const totalMonthlySavings = (Object.values(data.savings) as number[]).reduce((a, b) => a + b, 0);
   
   const prompt = `
     Analyze this financial data:
@@ -72,7 +73,9 @@ export const analyzeFinance = async (data: FinancialData): Promise<AIAdvice> => 
     }
   });
 
-  return JSON.parse(response.text.trim()) as AIAdvice;
+  // Access .text property directly and handle potential undefined
+  const responseText = response.text || "{}";
+  return JSON.parse(responseText.trim()) as AIAdvice;
 };
 
 export const startChatSession = (context?: FinancialData): Chat => {
